@@ -86,7 +86,7 @@ function quantiles(values, k){
   const qs=[]; for(let i=0;i<=k;i++){ const p=i/k; const idx=Math.floor(p*(v.length-1)); qs.push(v[idx]); }
   return qs;
 }
-const map = L.map('map', { preferCanvas:true, zoomSnap:0.25, zoomDelta:0.5 }).setView([54.9,-3.5], 6);
+
 
     function colorFor(val, breaks){
   if(!Number.isFinite(val) || !breaks.length) return NO_DATA_FILL;
