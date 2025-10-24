@@ -416,7 +416,8 @@ function render(){
     const rec = AGG.get(year + '__' + code);
     const val = rec ? rec[metric] : NaN;
    const has = Number.isFinite(val);
-const has = Number.isFinite(val);
+const fill = Number.isFinite(val) ? colorFor(val, breaks) : NO_DATA_FILL;
+
 const fill = has ? colorFor(val, breaks) : NO_DATA_FILL;
 l._currentFill = fill;
 l.setStyle({ fillColor: fill, fillOpacity: 0.85 });
