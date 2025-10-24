@@ -371,19 +371,31 @@ function buildLayer(){
   if(layer) { map.removeLayer(layer); layer=null; }
 layer = L.geoJSON(geoLAD, {
   style: () => ({ color:'#c7d2fe', weight:1.4, fillColor:NO_DATA_FILL, fillOpacity:0.85 }),
-  onEachFeature: (f, l) => {
-    l.on({
-      mouseover: e => e.target.setStyle({ weight:2, color:'#fff', fillColor:e.target._currentFill, fillOpacity:1 }),
-     mouseout: e => e.target.setStyle({
-  weight: 1.4,
-  color: '#c7d2fe',
-  fillColor: e.target._currentFill,
-  fillOpacity: e.target._baseOpacity ?? 0.85
-})
+ onEachFeature: (f, l) => {
+  l.on({
+    mouseover: (e) => {
+      const t = e.target;
+      t.setStyle({
+        weight: 2,
+        color: '#fff',
+        fillColor: t._currentFill,
+        fillOpacity: 1
+      });
+    },
+    mouseout: (e) => {
+      const t = e.target;
+      t.setStyle({
+        weight: 1.4,
+        color: '#c7d2fe',
+        fillColor: t._currentFill,
+        fillOpacity: (typeof t._baseOpacity === 'number') ? t._baseOpacity : 0.85
+      });
+    }
+  });
+  l._codeProp = LAD_CODE_PROP;
+  l._nameProp = LAD_NAME_PROP;
+}
 
-    l._codeProp = LAD_CODE_PROP;
-    l._nameProp = LAD_NAME_PROP;
-  }
 }).addTo(map);
 
 layer.bringToFront();
@@ -421,13 +433,16 @@ function render(){
    const rec = AGG.get(year + '__' + code);
 const val = rec ? rec[metric] : NaN;
 
-const fill = Number.isFinite(val) ? colorFor(val, breaks) : NO_DATA_FILL;
-const baseOpacity = Number.isFinite(val) ? 0.85 : 0.6;
+const hasVal = Number.isFinite(val);
+const fill = hasVal ? colorFor(val, breaks) : NO_DATA_FILL;
+const baseOpacity = hasVal ? 0.85 : 0.6;
 
-l._currentFill = fill;
-l._baseOpacity = baseOpacity;     // ← remember it for mouseout
+l._currentFill = fill;         // used by hover handlers
+l._baseOpacity = baseOpacity;  // used by mouseout to restore
 l.setStyle({ fillColor: fill, fillOpacity: baseOpacity });
-if (Number.isFinite(val)) matched++;
+
+if (hasVal) matched++;
+
 
 
     const elo = rec?.ELO, win=rec?.WIN, played=rec?.PLAYED, winpc=rec?.WINPC_CALC;
