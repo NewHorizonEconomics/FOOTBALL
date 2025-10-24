@@ -13,78 +13,26 @@
 
   <style>
     :root { --bg:#0b0f19; --panel:#212F47; --text:#e8ecf3; --muted:#c3ccda; --accent:#4f8cff; --border:#2f3e5b; }
+    html, body { height: 100%; margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Arial, sans-serif; background: var(--bg); color: var(--text); }
+    #app { display: grid; grid-template-columns: 360px 1fr; grid-template-rows: auto 1fr; height: 100%; }
 
-    html, body {
-      height: 100%;
-      margin: 0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-    }
-    #app {
-      display: grid;
-      grid-template-columns: 360px 1fr;
-      grid-template-rows: auto 1fr;
-      height: 100%;
-    }
-
-    /* Header */
-    header {
-      grid-column: 1 / -1;
-      padding: 10px 16px;
-      border-bottom: 1px solid var(--border);
-      background: var(--panel);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    header h1 {
-      margin: 0;
-      font-weight: 800;
-      font-size: 22px;
-      letter-spacing: .5px;
-      text-transform: uppercase;
-      color: var(--text);
-    }
+    header { grid-column: 1 / -1; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--panel); display: flex; align-items: center; gap: 12px; }
+    header h1 { margin: 0; font-weight: 800; font-size: 22px; letter-spacing: .5px; text-transform: uppercase; color: var(--text); }
     .brand { display: flex; align-items: center; gap: 12px; }
     .brand img { width: 40px; height: 40px; border-radius: 50%; border: 2px solid rgba(255,255,255,.08); object-fit: cover; }
     .brand .sub { color: var(--muted); font-size: 12px; }
 
-    /* Sidebar */
-    aside {
-      border-right: 1px solid var(--border);
-      background: var(--panel);
-      padding: 14px;
-      overflow-y: auto;
-      overflow-x: hidden;
-    }
-
-    /* Controls */
+    aside { border-right: 1px solid var(--border); background: var(--panel); padding: 14px; overflow-y: auto; overflow-x: hidden; }
     .group { margin-bottom: 16px; }
     .group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
-    input[type="range"],
-    input[type="number"],
-    button,
-    select {
-      width: 100%;
-      max-width: 100%;
-      box-sizing: border-box;
-      background: #0e1424;
-      color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 8px 10px;
-      font-size: 14px;
-    }
+    input[type="range"], input[type="number"], button, select { width: 100%; max-width: 100%; box-sizing: border-box; background: #0e1424; color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; font-size: 14px; }
     .row-inline{display:flex;gap:8px;align-items:center}
 
-    /* KPI */
     .kpis{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:8px}
     .kpi{background:#0e1424;border:1px solid var(--border);border-radius:12px;padding:8px 10px}
     .kpi .l{font-size:12px;color:var(--muted);margin-bottom:4px}
     .kpi .v{font-size:18px;font-weight:700;color:var(--text)}
 
-    /* Map & legend */
     main { position: relative; }
     #map { height: 100%; width: 100%; min-height: 400px; }
     .legend{position:absolute;bottom:16px;right:16px;background:rgba(20,26,42,.96);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:12px;font-size:12px;line-height:1.2;box-shadow:0 10px 24px rgba(0,0,0,.25);z-index:1000;pointer-events:none}
@@ -92,6 +40,7 @@
     .swatch{width:16px;height:12px;border-radius:2px;border:1px solid rgba(255,255,255,.1)}
     .tooltip{background:rgba(20,26,42,.96);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-size:12px;box-shadow:0 10px 24px rgba(0,0,0,.25)}
 
+    .errorbar{position:absolute;top:12px;right:12px;left:380px;background:#742a2a;color:#fff;border:1px solid #9b2c2c;border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.3;display:none;z-index:1200}
     .note{font-size:12px;color:var(--muted)}
   </style>
 </head>
@@ -138,12 +87,15 @@
         <button id="legendToggle" style="width:100%;">Hide legend</button>
       </div>
 
-   
+      <div class="group note">
+        <strong>Reminder:</strong> To switch to 2023 boundaries later, change <code>GEO_URL</code> in the CONFIG section from <code>"/data/lad_2022.geojson"</code> to <code>"/data/lad_2023.geojson"</code>.
+      </div>
     </aside>
 
     <main>
       <div id="map"></div>
       <div id="legend" class="legend"></div>
+      <div id="errorbar" class="errorbar"></div>
     </main>
   </div>
 
@@ -152,20 +104,27 @@
 
   <script defer>
 // ============== CONFIG YOU CONTROL ==============
-const CSV_URL   = 'wp-elo-lads.csv';     // YEAR, CODE (LAD22), NAME, ELO, WIN, PLAYED, WINPC
-const GEO_URL   = 'lad_2022.geojson';    // 👉 change to 'lad_2023.geojson' when ready
-const LAD_CODE_PROP = 'LAD22CD';         // code property in your LAD22 file
-const LAD_NAME_PROP = 'LAD22NM';         // name property in your LAD22 file
+const CSV_URL   = '/data/wp-elo-lads.csv';     // YEAR, CODE (LAD22), NAME, ELO, WIN, PLAYED, WINPC
+const GEO_URL   = '/data/lad_2022.geojson';    // 👉 change to '/data/lad_2023.geojson' when ready
+const LAD_CODE_PROP = 'LAD22CD';               // code property in your LAD22 file
+const LAD_NAME_PROP = 'LAD22NM';               // name property in your LAD22 file
 // ================================================
 
-// Blue palette, fixed across time, like Brewer Blues (light→dark)
 const PALETTE = ['#eff6ff','#dbeafe','#bfdbfe','#93c5fd','#60a5fa','#3b82f6','#1d4ed8','#1e40af'];
 const NO_DATA_FILL = '#3a4258';
-const K = PALETTE.length - 1; // number of intervals between quantiles
+const K = PALETTE.length - 1;
 
 let map, layer, geoLAD=null;
 let rows=[], year=1871, yearBounds=[1871,2025], metric='ELO';
 let legendVisible = JSON.parse(localStorage.getItem('legendVisible') ?? 'true');
+
+const $ = sel => document.querySelector(sel);
+function showError(msg){
+  const el = $('#errorbar');
+  if(!el) return;
+  el.textContent = msg;
+  el.style.display = 'block';
+}
 
 // ---------- helpers ----------
 const norm = x => String(x??'').trim().toUpperCase();
@@ -178,16 +137,11 @@ function quantiles(values, k){
 }
 function colorFor(val, breaks){
   if(!Number.isFinite(val) || !breaks.length) return NO_DATA_FILL;
-  for(let i=0;i<K;i++){ if(val <= breaks[i+1]) return PALETTE[i+0]; } // i+0 keeps alignment with breaks
+  for(let i=0;i<K;i++){ if(val <= breaks[i+1]) return PALETTE[i+0]; }
   return PALETTE[PALETTE.length-1];
 }
-function fmtMetric(m,v){
-  if(!Number.isFinite(v)) return '—';
-  return m==='ELO' ? v.toFixed(2) : v.toFixed(1) + '%';
-}
-function metricLabel(m){
-  return m==='ELO' ? 'ELO rating' : 'Win % (from WIN/PLAYED)';
-}
+function fmtMetric(m,v){ if(!Number.isFinite(v)) return '—'; return m==='ELO' ? v.toFixed(2) : v.toFixed(1) + '%'; }
+function metricLabel(m){ return m==='ELO' ? 'ELO rating' : 'Win % (from WIN/PLAYED)'; }
 
 // --- Reproject EPSG:27700 (OSGB36 / BNG) GeoJSON -> WGS84 ---
 const EPSG27700_DEF =
@@ -212,14 +166,14 @@ window.addEventListener('DOMContentLoaded', async ()=>{
               {attribution:'&copy; OpenStreetMap, &copy; CARTO'}).addTo(map);
 
   // Hook controls
-  const yrR=document.getElementById('yearRange'), yrI=document.getElementById('yearInput');
+  const yrR=$('#yearRange'), yrI=$('#yearInput');
   yrR.addEventListener('input',e=>{year=+e.target.value; yrI.value=year; render();});
   yrI.addEventListener('input',e=>{year=+e.target.value; yrR.value=year; render();});
-  document.getElementById('metricMode').addEventListener('change', e=>{ metric=e.target.value; render(true); });
-  document.getElementById('fitBtn').addEventListener('click', fitUK);
-  document.getElementById('playBtn').addEventListener('click', togglePlay);
+  $('#metricMode').addEventListener('change', e=>{ metric=e.target.value; render(true); });
+  $('#fitBtn').addEventListener('click', fitUK);
+  $('#playBtn').addEventListener('click', togglePlay);
 
-  const legendBtn = document.getElementById('legendToggle');
+  const legendBtn = $('#legendToggle');
   if (legendBtn) {
     legendBtn.addEventListener('click', () => {
       legendVisible = !legendVisible;
@@ -229,28 +183,29 @@ window.addEventListener('DOMContentLoaded', async ()=>{
 
   try{
     await loadAll();
-    computeBreaks();   // fixed bins across full period for each metric
+    computeBreaks();
     buildLayer();
     fitUK();
     render();
     applyLegendVisibility();
   }catch(err){
     console.error(err);
-    alert('Failed to load one or more resources — check the console for details.');
+    showError('Failed to load one or more resources. Open the browser console for details.');
   }
 });
 
 // ------------------- loading ---------------------
 async function loadAll(){
   // CSV
-  const res = await fetch(CSV_URL, {cache:'no-store'});
-  if(!res.ok) throw new Error('CSV fetch failed');
+  let res;
+  try{ res = await fetch(CSV_URL, {cache:'no-store'}); }
+  catch(e){ showError('CSV fetch failed — are you opening the file via file:// ? Please serve via a local web server.'); throw e; }
+  if(!res.ok){ showError('CSV fetch failed with status ' + res.status + ' — check the path: ' + CSV_URL); throw new Error('CSV fetch failed'); }
   const text = await res.text();
   const parsed = Papa.parse(text, {header:true, dynamicTyping:false, skipEmptyLines:true});
   const raw = parsed.data || [];
-  if(!raw.length) throw new Error('CSV parsed with 0 rows');
+  if(!raw.length){ showError('CSV parsed with 0 rows — check headers and data.'); throw new Error('CSV parsed with 0 rows'); }
 
-  // Normalise & coerce
   rows = raw.map(r => ({
     code: norm(r.CODE),
     year: +r.YEAR,
@@ -264,23 +219,23 @@ async function loadAll(){
   const yrs = [...new Set(rows.map(r => r.year))].filter(Number.isFinite).sort((a,b)=>a-b);
   if(yrs.length){ yearBounds=[yrs[0], yrs[yrs.length-1]]; }
   year = Math.max(Math.min(year, yearBounds[1]), yearBounds[0]);
-  document.getElementById('yearRange').min = yearBounds[0];
-  document.getElementById('yearRange').max = yearBounds[1];
-  document.getElementById('yearRange').value = year;
-  document.getElementById('yearInput').min = yearBounds[0];
-  document.getElementById('yearInput').max = yearBounds[1];
-  document.getElementById('yearInput').value = year;
+  $('#yearRange').min = yearBounds[0];
+  $('#yearRange').max = yearBounds[1];
+  $('#yearRange').value = year;
+  $('#yearInput').min = yearBounds[0];
+  $('#yearInput').max = yearBounds[1];
+  $('#yearInput').value = year;
 
   // GeoJSON
-  const gj = await fetch(GEO_URL, {cache:'no-store'});
-  if(!gj.ok) throw new Error('LAD geo fetch failed');
+  let gj;
+  try{ gj = await fetch(GEO_URL, {cache:'no-store'}); }
+  catch(e){ showError('GeoJSON fetch failed — are you opening the file via file:// ? Please serve via a local web server.'); throw e; }
+  if(!gj.ok){ showError('GeoJSON fetch failed with status ' + gj.status + ' — check the path: ' + GEO_URL); throw new Error('GeoJSON fetch failed'); }
   let rawGeo = await gj.json();
   geoLAD = isLikelyBNG(rawGeo) ? reproject27700toWGS84(rawGeo) : rawGeo;
 }
 
-// Aggregate per (year, code):
-// - ELO: mean of available ELOs (prepping for future multi-team aggregation)
-// - WINPC_CALC: (sum WIN) / (sum PLAYED) * 100
+// Aggregate per (year, code)
 function aggByYearCode(){
   const out = new Map(); // key: `${year}__${code}`
   for(const r of rows){
@@ -347,10 +302,7 @@ function applyLegendVisibility() {
   localStorage.setItem('legendVisible', JSON.stringify(legendVisible));
 }
 
-function fmt(x, m){
-  if(!Number.isFinite(x)) return '—';
-  return m==='ELO' ? x.toFixed(0) : x.toFixed(0) + '%';
-}
+function fmt(x, m){ if(!Number.isFinite(x)) return '—'; return m==='ELO' ? x.toFixed(0) : x.toFixed(0) + '%'; }
 
 function updateLegend(){
   const el = document.getElementById('legend');
@@ -378,11 +330,9 @@ function updateLegend(){
   applyLegendVisibility();
 }
 
-function render(rebuildBreaks=false){
+function render(){
   if(!layer) return;
-  if(rebuildBreaks) updateLegend(); // metric change: legend rebuilt anyway
   document.getElementById('kpi-year').textContent = year;
-
   const breaks = BREAKS[metric] || [];
   let matched=0, total=0;
 
@@ -415,10 +365,11 @@ function render(rebuildBreaks=false){
   });
 
   updateLegend();
-  console.log(\`Render LAD/\${metric} \${year}: matched \${matched} of \${total}\`);
+  console.log(`Render LAD/${metric} ${year}: matched ${matched} of ${total}`);
 }
 
 function fitUK(){ if(!layer) return; const tight = layer.getBounds().pad(-0.05); map.fitBounds(tight, {padding:[20,20]}); }
+
 let timer=null;
 function togglePlay(){
   const btn=document.getElementById('playBtn');
