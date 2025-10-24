@@ -8,6 +8,9 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer crossorigin="anonymous"></script>
   <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js" defer></script>
+  <script src="https://unpkg.com/proj4@2.9.2/dist/proj4.js" defer></script>
+<script src="https://unpkg.com/proj4leaflet@1.0.2/src/proj4leaflet.js" defer></script>
+
 
   <style>
     :root { --bg:#0b0f19; --panel:#212F47; --text:#e8ecf3; --muted:#c3ccda; --border:#2f3e5b; }
@@ -149,6 +152,46 @@ document.getElementById('legendToggle')?.addEventListener('click', ()=>{
   applyLegendVisibility();
 });
 
+// Detect & reproject EPSG:27700 (BNG) -> WGS84
+const EPSG27700_DEF =
+  '+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 ' +
+  '+ellps=airy +towgs84=446.448,-125.157,542.06,0.1502,0.2470,0.8421,-20.4894 +units=m +no_defs';
+
+function firstXY(coords){
+  if (!coords) return null;
+  if (typeof coords[0] === 'number') return coords;
+  for (const c of coords) { const v = firstXY(c); if (v) return v; }
+  return null;
+}
+
+function isLikelyBNG(geo){
+  try{
+    const xy = firstXY(geo?.features?.[0]?.geometry?.coordinates);
+    if(!xy) return false;
+    const [x,y] = xy;
+    // lon/lat should be small; BNG eastings/northings are large
+    return Math.abs(x) > 180 || Math.abs(y) > 90;
+  }catch{return false;}
+}
+
+function reproject27700toWGS84(geo){
+  if (!window.proj4) return geo; // safety
+  proj4.defs('EPSG:27700', EPSG27700_DEF);
+  const fwd = (xy) => proj4('EPSG:27700','WGS84', xy);
+
+  function rp(coords){
+    if (typeof coords[0] === 'number') {
+      const [x,y] = coords; const [lon,lat] = fwd([x,y]); return [lon,lat];
+    }
+    return coords.map(rp);
+  }
+
+  const out = JSON.parse(JSON.stringify(geo));
+  for (const f of out.features) {
+    if (f.geometry?.coordinates) f.geometry.coordinates = rp(f.geometry.coordinates);
+  }
+  return out;
+}
 
   $('#yearRange').addEventListener('input',e=>{year=+e.target.value; $('#yearInput').value=year; render();});
   $('#yearInput').addEventListener('input',e=>{year=+e.target.value; $('#yearRange').value=year; render();});
@@ -196,9 +239,20 @@ async function loadCSV(){
 async function loadGeo(){
   const gj = await fetch(GEO_URL, {cache:'no-store'}).catch(e=>{ showError('GeoJSON fetch failed — is ' + GEO_URL + ' reachable?'); throw e; });
   if(!gj?.ok){ showError('GeoJSON fetch failed: ' + (gj?.status||'network error')); throw new Error('GeoJSON fetch failed'); }
-  const raw = await gj.json();
+ const raw = await gj.json();
+if (raw && raw.type === 'Topology') {
+  // (Optional) If you ever load TopoJSON later, convert to GeoJSON first
+  // geoLAD = topojson.feature(raw, raw.objects[Object.keys(raw.objects)[0]]);
+  // For now assume plain GeoJSON:
   geoLAD = raw;
-  const n = geoLAD?.features?.length || 0;
+} else if (isLikelyBNG(raw)) {
+  console.log('Detected EPSG:27700 (BNG) — reprojecting to WGS84…');
+  geoLAD = reproject27700toWGS84(raw);
+} else {
+  geoLAD = raw;
+}
+const n = geoLAD?.features?.length || 0;
+
   log('Geo features:', n);
   if(!n){ showError('GeoJSON has 0 features — check the file content/format.'); throw new Error('Empty GeoJSON'); }
 // --- After geoLAD is loaded and n checked ---
