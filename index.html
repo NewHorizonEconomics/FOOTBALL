@@ -30,7 +30,16 @@
 </head>
 <body>
   <div id="app">
-    <header><h1>FOOTBALL — ELO & Win% by UK Local Authority (1871–2025)</h1></header>
+   <header>
+  <div class="brand">
+    <img src="/data/logo.png" alt="logo" />
+    <div>
+      <h1>NEW HORIZON ECONOMICS | FOOTBALL — ELO & Win% by UK LOCAL AUTHORITY (1871–2025)</h1>
+      <div class="sub">ONS LAD 2022 · interactive choropleth</div>
+    </div>
+  </div>
+</header>
+
     <aside>
       <div class="group">
         <label>Year</label>
@@ -48,6 +57,10 @@
         <button id="playBtn">▶ Play year</button>
         <button id="fitBtn">Reset map</button>
       </div>
+      <div class="group">
+  <button id="legendToggle" style="width:100%;">Hide legend</button>
+</div>
+
     </aside>
     <main>
       <div id="map"></div>
@@ -60,8 +73,9 @@
 // ===== CONFIG =====
 const CSV_URL   = '/data/wp-elo-lads.csv';
 const GEO_URL   = '/data/lad_2022.geojson'; // change to /data/lad_2023.geojson when ready
-const LAD_CODE_PROP = 'LAD22CD';
-const LAD_NAME_PROP = 'LAD22NM';
+let LAD_CODE_PROP = 'LAD22CD';
+let LAD_NAME_PROP = 'LAD22NM';
+
 // ==================
 
 const PALETTE = ['#eff6ff','#dbeafe','#bfdbfe','#93c5fd','#60a5fa','#3b82f6','#1d4ed8','#1e40af'];
@@ -87,6 +101,16 @@ function quantiles(values, k){
   return qs;
 }
 
+let legendVisible = JSON.parse(localStorage.getItem('legendVisible') ?? 'true');
+
+function applyLegendVisibility() {
+  const el = document.getElementById('legend');
+  const btn = document.getElementById('legendToggle');
+  if (!el) return;
+  el.style.display = legendVisible ? 'block' : 'none';
+  if (btn) btn.textContent = legendVisible ? 'Hide legend' : 'Show legend';
+  localStorage.setItem('legendVisible', JSON.stringify(legendVisible));
+}
 
     function colorFor(val, breaks){
   if(!Number.isFinite(val) || !breaks.length) return NO_DATA_FILL;
@@ -107,6 +131,10 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
   zIndex: 200
 }).addTo(map);
 
+document.getElementById('legendToggle')?.addEventListener('click', ()=>{
+  legendVisible = !legendVisible;
+  applyLegendVisibility();
+});
 
 
   $('#yearRange').addEventListener('input',e=>{year=+e.target.value; $('#yearInput').value=year; render();});
@@ -160,9 +188,17 @@ async function loadGeo(){
   const n = geoLAD?.features?.length || 0;
   log('Geo features:', n);
   if(!n){ showError('GeoJSON has 0 features — check the file content/format.'); throw new Error('Empty GeoJSON'); }
+// --- After geoLAD is loaded and n checked ---
+const sampleProps = geoLAD?.features?.[0]?.properties || {};
+console.log('Geo features:', n, 'sample props:', sampleProps);
+if (typeof sampleProps[LAD_CODE_PROP] === 'undefined') {
+  if (typeof sampleProps.LAD23CD !== 'undefined') { LAD_CODE_PROP = 'LAD23CD'; LAD_NAME_PROP = 'LAD23NM'; }
+  else if (typeof sampleProps.LADCD !== 'undefined') { LAD_CODE_PROP = 'LADCD'; LAD_NAME_PROP = sampleProps.LADNM ? 'LADNM' : LAD_NAME_PROP; }
+  // add more fallbacks here if needed
+  console.log('Detected props:', LAD_CODE_PROP, LAD_NAME_PROP);
 }
-console.log('Geo features:', geoLAD?.features?.length || 0,
-            'sample props:', geoLAD?.features?.[0]?.properties);
+}
+
 
 function aggByYearCode(){
   const out = new Map();
@@ -254,7 +290,11 @@ function render(){
     const name = String(l.feature.properties[l._nameProp]||'');
     const rec = AGG.get(year + '__' + code);
     const val = rec ? rec[metric] : NaN;
-    const fill = colorFor(val, breaks); l._currentFill = fill; l.setStyle({fillColor:fill});
+   const has = Number.isFinite(val);
+const fill = has ? colorFor(val, breaks) : NO_DATA_FILL;
+l._currentFill = fill;
+l.setStyle({ fillColor: fill, fillOpacity: 0.85 });
+
     const elo = rec?.ELO, win=rec?.WIN, played=rec?.PLAYED, winpc=rec?.WINPC_CALC;
     const valTxt = fmtMetric(metric, val);
     const eloTxt = Number.isFinite(elo) ? elo.toFixed(2) : '—';
@@ -265,6 +305,8 @@ function render(){
   });
   updateLegend();
   log('Render ' + metric + ' ' + year + ': matched ' + matched + '/' + total);
+updateLegend();
+applyLegendVisibility();
 
 }
 
