@@ -5,71 +5,38 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>FOOTBALL — ELO & Win% by UK Local Authority (1871–2025)</title>
 
-  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
-  <!-- Leaflet + PapaParse (defer) -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer crossorigin="anonymous"></script>
   <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js" defer></script>
 
   <style>
-    :root { --bg:#0b0f19; --panel:#212F47; --text:#e8ecf3; --muted:#c3ccda; --accent:#4f8cff; --border:#2f3e5b; }
+    :root { --bg:#0b0f19; --panel:#212F47; --text:#e8ecf3; --muted:#c3ccda; --border:#2f3e5b; }
     html, body { height: 100%; margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Arial, sans-serif; background: var(--bg); color: var(--text); }
     #app { display: grid; grid-template-columns: 360px 1fr; grid-template-rows: auto 1fr; height: 100%; }
-
     header { grid-column: 1 / -1; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--panel); display: flex; align-items: center; gap: 12px; }
     header h1 { margin: 0; font-weight: 800; font-size: 22px; letter-spacing: .5px; text-transform: uppercase; color: var(--text); }
-    .brand { display: flex; align-items: center; gap: 12px; }
-    .brand img { width: 40px; height: 40px; border-radius: 50%; border: 2px solid rgba(255,255,255,.08); object-fit: cover; }
-    .brand .sub { color: var(--muted); font-size: 12px; }
-
-    aside { border-right: 1px solid var(--border); background: var(--panel); padding: 14px; overflow-y: auto; overflow-x: hidden; }
+    aside { border-right: 1px solid var(--border); background: var(--panel); padding: 14px; overflow-y: auto; }
     .group { margin-bottom: 16px; }
     .group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
-    input[type="range"], input[type="number"], button, select { width: 100%; max-width: 100%; box-sizing: border-box; background: #0e1424; color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; font-size: 14px; }
-    .row-inline{display:flex;gap:8px;align-items:center}
-
-    .kpis{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:8px}
-    .kpi{background:#0e1424;border:1px solid var(--border);border-radius:12px;padding:8px 10px}
-    .kpi .l{font-size:12px;color:var(--muted);margin-bottom:4px}
-    .kpi .v{font-size:18px;font-weight:700;color:var(--text)}
-
+    input[type="range"], input[type="number"], button, select { width: 100%; background: #0e1424; color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; font-size: 14px; }
     main { position: relative; }
     #map { height: 100%; width: 100%; min-height: 400px; }
     .legend{position:absolute;bottom:16px;right:16px;background:rgba(20,26,42,.96);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:12px;font-size:12px;line-height:1.2;box-shadow:0 10px 24px rgba(0,0,0,.25);z-index:1000;pointer-events:none}
     .legend .row{display:flex;align-items:center;gap:8px;margin:4px 0}
     .swatch{width:16px;height:12px;border-radius:2px;border:1px solid rgba(255,255,255,.1)}
     .tooltip{background:rgba(20,26,42,.96);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-size:12px;box-shadow:0 10px 24px rgba(0,0,0,.25)}
-
     .errorbar{position:absolute;top:12px;right:12px;left:380px;background:#742a2a;color:#fff;border:1px solid #9b2c2c;border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.3;display:none;z-index:1200}
-    .note{font-size:12px;color:var(--muted)}
   </style>
 </head>
 <body>
   <div id="app">
-    <header>
-      <div class="brand">
-        <img src="/data/logo.png" alt="logo" />
-        <div>
-          <h1>NEW HORIZON ECONOMICS | FOOTBALL — ELO & Win% by UK LOCAL AUTHORITY (1871–2025)</h1>
-          <div class="sub">ONS LAD 2022 · interactive choropleth</div>
-        </div>
-      </div>
-    </header>
-
+    <header><h1>FOOTBALL — ELO & Win% by UK Local Authority (1871–2025)</h1></header>
     <aside>
-      <div class="group kpis">
-        <div class="kpi">
-          <div class="l">Year</div>
-          <div class="v" id="kpi-year">—</div>
-        </div>
-      </div>
-
       <div class="group">
         <label>Year</label>
         <input id="yearRange" type="range" min="1871" max="2025" step="1" value="1871"/>
         <input id="yearInput" type="number" min="1871" max="2025" step="1" value="1871" style="margin-top:6px;"/>
       </div>
-
       <div class="group">
         <label>Metric</label>
         <select id="metricMode">
@@ -77,21 +44,11 @@
           <option value="WINPC_CALC">Win % (from WIN/PLAYED)</option>
         </select>
       </div>
-
-      <div class="group row-inline">
-        <button id="playBtn" style="flex:1;">▶ Play year</button>
-        <button id="fitBtn" style="flex:1;">Reset map</button>
-      </div>
-
       <div class="group">
-        <button id="legendToggle" style="width:100%;">Hide legend</button>
-      </div>
-
-      <div class="group note">
-        <strong>Reminder:</strong> To switch to 2023 boundaries later, change <code>GEO_URL</code> in the CONFIG section from <code>"/data/lad_2022.geojson"</code> to <code>"/data/lad_2023.geojson"</code>.
+        <button id="playBtn">▶ Play year</button>
+        <button id="fitBtn">Reset map</button>
       </div>
     </aside>
-
     <main>
       <div id="map"></div>
       <div id="legend" class="legend"></div>
@@ -99,16 +56,13 @@
     </main>
   </div>
 
-  <script src="https://unpkg.com/proj4@2.9.2/dist/proj4.js" defer></script>
-  <script src="https://unpkg.com/proj4leaflet@1.0.2/src/proj4leaflet.js" defer></script>
-
-  <script defer>
-// ============== CONFIG YOU CONTROL ==============
-const CSV_URL   = '/data/wp-elo-lads.csv';     // YEAR, CODE (LAD22), NAME, ELO, WIN, PLAYED, WINPC
-const GEO_URL   = '/data/lad_2022.geojson';    // 👉 change to '/data/lad_2023.geojson' when ready
-const LAD_CODE_PROP = 'LAD22CD';               // code property in your LAD22 file
-const LAD_NAME_PROP = 'LAD22NM';               // name property in your LAD22 file
-// ================================================
+  <script>
+// ===== CONFIG =====
+const CSV_URL   = '/data/wp-elo-lads.csv';
+const GEO_URL   = '/data/lad_2022.geojson'; // change to /data/lad_2023.geojson when ready
+const LAD_CODE_PROP = 'LAD22CD';
+const LAD_NAME_PROP = 'LAD22NM';
+// ==================
 
 const PALETTE = ['#eff6ff','#dbeafe','#bfdbfe','#93c5fd','#60a5fa','#3b82f6','#1d4ed8','#1e40af'];
 const NO_DATA_FILL = '#3a4258';
@@ -116,17 +70,13 @@ const K = PALETTE.length - 1;
 
 let map, layer, geoLAD=null;
 let rows=[], year=1871, yearBounds=[1871,2025], metric='ELO';
-let legendVisible = JSON.parse(localStorage.getItem('legendVisible') ?? 'true');
+let legendVisible = true;
 
 const $ = sel => document.querySelector(sel);
-function showError(msg){
-  const el = $('#errorbar');
-  if(!el) return;
-  el.textContent = msg;
-  el.style.display = 'block';
-}
+function showError(msg){ const el=$('#errorbar'); if(!el) return; el.textContent=msg; el.style.display='block'; console.error('[UI]', msg); }
+function log(...a){ console.log('[MAP]', ...a); }
 
-// ---------- helpers ----------
+// -------- helpers --------
 const norm = x => String(x??'').trim().toUpperCase();
 function num(x){ if(x==null) return NaN; const s=String(x).replace(/[\s,]+/g,'').replace(/[−–—]/g,'-'); const v=+s; return Number.isFinite(v)?v:NaN; }
 function quantiles(values, k){
@@ -143,69 +93,37 @@ function colorFor(val, breaks){
 function fmtMetric(m,v){ if(!Number.isFinite(v)) return '—'; return m==='ELO' ? v.toFixed(2) : v.toFixed(1) + '%'; }
 function metricLabel(m){ return m==='ELO' ? 'ELO rating' : 'Win % (from WIN/PLAYED)'; }
 
-// --- Reproject EPSG:27700 (OSGB36 / BNG) GeoJSON -> WGS84 ---
-const EPSG27700_DEF =
-  '+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 ' +
-  '+ellps=airy +towgs84=446.448,-125.157,542.06,0.1502,0.2470,0.8421,-20.4894 +units=m +no_defs';
-function firstXY(coords){ if(!coords) return null; if(typeof coords[0]==='number') return coords; for(const c of coords){ const v=firstXY(c); if(v) return v; } return null; }
-function isLikelyBNG(geo){ try{ const xy=firstXY(geo?.features?.[0]?.geometry?.coordinates); if(!xy) return false; const [x,y]=xy; return Math.abs(x)>180 || Math.abs(y)>90; }catch{return false;} }
-function reproject27700toWGS84(geo){
-  if(!window.proj4) return geo;
-  proj4.defs('EPSG:27700', EPSG27700_DEF);
-  const fwd = (xy) => proj4('EPSG:27700','WGS84', xy);
-  function rp(coords){ if(typeof coords[0]==='number'){ const [x,y]=coords; const [lon,lat]=fwd([x,y]); return [lon,lat]; } return coords.map(rp); }
-  const out = JSON.parse(JSON.stringify(geo));
-  for(const f of out.features){ if(f.geometry?.coordinates) f.geometry.coordinates = rp(f.geometry.coordinates); }
-  return out;
-}
-
-// ----------------- app bootstrap -----------------
 window.addEventListener('DOMContentLoaded', async ()=>{
   map = L.map('map',{preferCanvas:true,zoomSnap:0.25,zoomDelta:0.5}).setView([54.9,-3.5],6);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
               {attribution:'&copy; OpenStreetMap, &copy; CARTO'}).addTo(map);
 
-  // Hook controls
-  const yrR=$('#yearRange'), yrI=$('#yearInput');
-  yrR.addEventListener('input',e=>{year=+e.target.value; yrI.value=year; render();});
-  yrI.addEventListener('input',e=>{year=+e.target.value; yrR.value=year; render();});
+  $('#yearRange').addEventListener('input',e=>{year=+e.target.value; $('#yearInput').value=year; render();});
+  $('#yearInput').addEventListener('input',e=>{year=+e.target.value; $('#yearRange').value=year; render();});
   $('#metricMode').addEventListener('change', e=>{ metric=e.target.value; render(true); });
   $('#fitBtn').addEventListener('click', fitUK);
   $('#playBtn').addEventListener('click', togglePlay);
 
-  const legendBtn = $('#legendToggle');
-  if (legendBtn) {
-    legendBtn.addEventListener('click', () => {
-      legendVisible = !legendVisible;
-      applyLegendVisibility();
-    });
-  }
-
   try{
-    await loadAll();
+    await loadCSV();
+    await loadGeo();
     computeBreaks();
     buildLayer();
     fitUK();
     render();
-    applyLegendVisibility();
-  }catch(err){
-    console.error(err);
-    showError('Failed to load one or more resources. Open the browser console for details.');
+  }catch(e){
+    showError('Initialisation failed. See console for details.');
   }
 });
 
-// ------------------- loading ---------------------
-async function loadAll(){
-  // CSV
-  let res;
-  try{ res = await fetch(CSV_URL, {cache:'no-store'}); }
-  catch(e){ showError('CSV fetch failed — are you opening the file via file:// ? Please serve via a local web server.'); throw e; }
-  if(!res.ok){ showError('CSV fetch failed with status ' + res.status + ' — check the path: ' + CSV_URL); throw new Error('CSV fetch failed'); }
+async function loadCSV(){
+  const res = await fetch(CSV_URL, {cache:'no-store'}).catch(e=>{ showError('CSV fetch failed — is /data/wp-elo-lads.csv reachable?'); throw e; });
+  if(!res?.ok){ showError('CSV fetch failed: ' + (res?.status||'network error')); throw new Error('CSV fetch failed'); }
   const text = await res.text();
   const parsed = Papa.parse(text, {header:true, dynamicTyping:false, skipEmptyLines:true});
   const raw = parsed.data || [];
-  if(!raw.length){ showError('CSV parsed with 0 rows — check headers and data.'); throw new Error('CSV parsed with 0 rows'); }
-
+  log('CSV rows:', raw.length);
+  if(!raw.length){ showError('CSV parsed with 0 rows'); throw new Error('Empty CSV'); }
   rows = raw.map(r => ({
     code: norm(r.CODE),
     year: +r.YEAR,
@@ -215,29 +133,26 @@ async function loadAll(){
     played: num(r.PLAYED)
   })).filter(r => Number.isFinite(r.year) && r.code);
 
-  // Year bounds from data
   const yrs = [...new Set(rows.map(r => r.year))].filter(Number.isFinite).sort((a,b)=>a-b);
   if(yrs.length){ yearBounds=[yrs[0], yrs[yrs.length-1]]; }
   year = Math.max(Math.min(year, yearBounds[1]), yearBounds[0]);
-  $('#yearRange').min = yearBounds[0];
-  $('#yearRange').max = yearBounds[1];
-  $('#yearRange').value = year;
-  $('#yearInput').min = yearBounds[0];
-  $('#yearInput').max = yearBounds[1];
-  $('#yearInput').value = year;
-
-  // GeoJSON
-  let gj;
-  try{ gj = await fetch(GEO_URL, {cache:'no-store'}); }
-  catch(e){ showError('GeoJSON fetch failed — are you opening the file via file:// ? Please serve via a local web server.'); throw e; }
-  if(!gj.ok){ showError('GeoJSON fetch failed with status ' + gj.status + ' — check the path: ' + GEO_URL); throw new Error('GeoJSON fetch failed'); }
-  let rawGeo = await gj.json();
-  geoLAD = isLikelyBNG(rawGeo) ? reproject27700toWGS84(rawGeo) : rawGeo;
+  $('#yearRange').min = yearBounds[0]; $('#yearRange').max = yearBounds[1]; $('#yearRange').value = year;
+  $('#yearInput').min = yearBounds[0]; $('#yearInput').max = yearBounds[1]; $('#yearInput').value = year;
+  log('Year bounds:', yearBounds);
 }
 
-// Aggregate per (year, code)
+async function loadGeo(){
+  const gj = await fetch(GEO_URL, {cache:'no-store'}).catch(e=>{ showError('GeoJSON fetch failed — is ' + GEO_URL + ' reachable?'); throw e; });
+  if(!gj?.ok){ showError('GeoJSON fetch failed: ' + (gj?.status||'network error')); throw new Error('GeoJSON fetch failed'); }
+  const raw = await gj.json();
+  geoLAD = raw;
+  const n = geoLAD?.features?.length || 0;
+  log('Geo features:', n);
+  if(!n){ showError('GeoJSON has 0 features — check the file content/format.'); throw new Error('Empty GeoJSON'); }
+}
+
 function aggByYearCode(){
-  const out = new Map(); // key: `${year}__${code}`
+  const out = new Map();
   for(const r of rows){
     const key = r.year + '__' + r.code;
     if(!out.has(key)) out.set(key, {year:r.year, code:r.code, name:r.name, eloVals:[], winSum:0, playedSum:0});
@@ -255,14 +170,11 @@ function aggByYearCode(){
   return out2;
 }
 
-let AGG=null;
-let BREAKS={ ELO:[], WINPC_CALC:[] };
-
+let AGG=null, BREAKS={ ELO:[], WINPC_CALC:[] };
 function computeBreaks(){
   AGG = aggByYearCode();
   const years = [...new Set(rows.map(r=>r.year))].filter(Number.isFinite);
   const vals = {ELO:[], WINPC_CALC:[]};
-
   for(const y of years){
     for(const [k,rec] of AGG.entries()){
       if(rec.year !== y) continue;
@@ -270,117 +182,99 @@ function computeBreaks(){
       if(Number.isFinite(rec.WINPC_CALC)) vals.WINPC_CALC.push(rec.WINPC_CALC);
     }
   }
-  BREAKS.ELO = quantiles(vals.ELO, K);
-  BREAKS.WINPC_CALC = quantiles(vals.WINPC_CALC, K);
+  const q = (arr)=>{
+    const v = arr.filter(Number.isFinite).sort((a,b)=>a-b);
+    if(!v.length) return [];
+    const qs=[]; for(let i=0;i<=K;i++){ const p=i/K; const idx=Math.floor(p*(v.length-1)); qs.push(v[idx]); } return qs;
+  };
+  BREAKS.ELO = q(vals.ELO);
+  BREAKS.WINPC_CALC = q(vals.WINPC_CALC);
+  log('Breaks ELO:', BREAKS.ELO);
+  log('Breaks WIN%:', BREAKS.WINPC_CALC);
 }
 
 function buildLayer(){
   if(layer) { map.removeLayer(layer); layer=null; }
   layer = L.geoJSON(geoLAD, {
-    style: baseStyle,
-    onEachFeature: (f,l)=> bindFeature(f,l,LAD_CODE_PROP,LAD_NAME_PROP)
+    style: ()=>({ color:'#9fb6e6', weight:1.1, fillColor:NO_DATA_FILL, fillOpacity:0.9 }),
+    onEachFeature: (f,l)=>{
+      l.on({
+        mouseover:e=>{ e.target.setStyle({weight:2,color:'#fff',fillColor:e.target._currentFill,fillOpacity:1}); },
+        mouseout:e=>{ e.target.setStyle({weight:1.1,color:'#9fb6e6',fillColor:e.target._currentFill,fillOpacity:0.9}); }
+      });
+      l._codeProp = LAD_CODE_PROP; l._nameProp = LAD_NAME_PROP;
+    }
   }).addTo(map);
+  log('Layer built with', layer.getLayers().length, 'features');
 }
-
-function baseStyle(){ return { color:'#9fb6e6', weight:1.1, fillColor:NO_DATA_FILL, fillOpacity:0.9 }; }
-
-function bindFeature(f, l, codeProp, nameProp){
-  l.on({
-    mouseover:e=>{ e.target.setStyle({weight:2,color:'#fff',fillColor:e.target._currentFill,fillOpacity:1}); },
-    mouseout:e=>{ e.target.setStyle({weight:1.1,color:'#9fb6e6',fillColor:e.target._currentFill,fillOpacity:0.9}); },
-    click:()=> map.fitBounds(l.getBounds(), {maxZoom:9})
-  });
-  l._codeProp = codeProp; l._nameProp = nameProp;
-}
-
-function applyLegendVisibility() {
-  const legend = document.getElementById('legend');
-  const btn = document.getElementById('legendToggle');
-  if (!legend) return;
-  legend.style.display = legendVisible ? 'block' : 'none';
-  if (btn) btn.textContent = legendVisible ? 'Hide legend' : 'Show legend';
-  localStorage.setItem('legendVisible', JSON.stringify(legendVisible));
-}
-
-function fmt(x, m){ if(!Number.isFinite(x)) return '—'; return m==='ELO' ? x.toFixed(0) : x.toFixed(0) + '%'; }
 
 function updateLegend(){
   const el = document.getElementById('legend');
   const breaks = BREAKS[metric] || [];
-  let html = `
-    <div style="margin-bottom:6px;font-weight:700;text-transform:uppercase;line-height:1.25">
-      ${metricLabel(metric)}<br/>
-      <span style="font-weight:400;color:var(--muted)">
-        LAD · fixed scale ${yearBounds[0]}–${yearBounds[1]}
-      </span>
-    </div>
-  `;
+  let html = `<div style="margin-bottom:6px;font-weight:700;text-transform:uppercase;line-height:1.25">
+    ${metricLabel(metric)}<br/><span style="font-weight:400;color:#c3ccda">LAD · fixed scale ${yearBounds[0]}–${yearBounds[1]}</span></div>`;
   if(!breaks.length){
     html += `<div class="row"><span class="swatch" style="background:${NO_DATA_FILL}"></span> No data</div>`;
-    el.innerHTML = html; applyLegendVisibility(); return;
+    el.innerHTML = html; return;
   }
   for(let i=0;i<K;i++){
     const a = breaks[i], b = breaks[i+1];
     if(a==null || b==null) continue;
-    html += `<div class="row"><span class="swatch" style="background:${PALETTE[i]}"></span> ${fmt(a,metric)} – ${fmt(b,metric)}</div>`;
+    html += `<div class="row"><span class="swatch" style="background:${PALETTE[i]}"></span> ${fmt(i,a)} – ${fmt(i,b)}</div>`;
   }
-  html += `<div class="row"><span class="swatch" style="background:${PALETTE[PALETTE.length-1]}"></span> > ${fmt(breaks[K],metric)}</div>`;
+  html += `<div class="row"><span class="swatch" style="background:${PALETTE[PALETTE.length-1]}"></span> > ${fmt(K,breaks[K])}</div>`;
   html += `<div class="row"><span class="swatch" style="background:${NO_DATA_FILL}"></span> No data</div>`;
   el.innerHTML = html;
-  applyLegendVisibility();
+  function fmt(i,v){ return Number.isFinite(v) ? (metric==='ELO' ? v.toFixed(0) : v.toFixed(0)+'%') : '—'; }
 }
 
 function render(){
   if(!layer) return;
-  document.getElementById('kpi-year').textContent = year;
   const breaks = BREAKS[metric] || [];
   let matched=0, total=0;
-
   layer.eachLayer(l=>{
     total++;
-    const f=l.feature;
-    const code = norm(f.properties[l._codeProp]);
-    const name = String(f.properties[l._nameProp]||'');
-
+    const code = norm(l.feature.properties[l._codeProp]);
+    const name = String(l.feature.properties[l._nameProp]||'');
     const rec = AGG.get(year + '__' + code);
-    let val = NaN, elo=null, win=null, played=null, winpc=null;
-    if(rec){
-      val = rec[metric];
-      elo = rec.ELO;
-      win = rec.WIN;
-      played = rec.PLAYED;
-      winpc = rec.WINPC_CALC;
-    }
+    const val = rec ? rec[metric] : NaN;
     const fill = colorFor(val, breaks); l._currentFill = fill; l.setStyle({fillColor:fill});
-
+    const elo = rec?.ELO, win=rec?.WIN, played=rec?.PLAYED, winpc=rec?.WINPC_CALC;
     const valTxt = fmtMetric(metric, val);
     const eloTxt = Number.isFinite(elo) ? elo.toFixed(2) : '—';
     const wpTxt = Number.isFinite(winpc) ? winpc.toFixed(1)+'%' : '—';
     const wonPlayed = (Number.isFinite(win) || Number.isFinite(played)) ? `${Number.isFinite(win)?win:'—'} / ${Number.isFinite(played)?played:'—'}` : '—';
-
-    l.bindTooltip(`<div><strong>${name}</strong><br/><span class="note">${code}</span><br/><strong>${metricLabel(metric)}:</strong> ${valTxt}<br/>ELO: ${eloTxt}<br/>Won/Played: ${wonPlayed} (${wpTxt})</div>`,
-      {sticky:true, opacity:0.95, className:'tooltip'});
-
+    l.bindTooltip(`<div><strong>${name}</strong><br/><span style="color:#c3ccda">${code}</span><br/><strong>${metricLabel(metric)}:</strong> ${valTxt}<br/>ELO: ${eloTxt}<br/>Won/Played: ${wonPlayed} (${wpTxt})</div>`, {sticky:true, opacity:0.95, className:'tooltip'});
     if(Number.isFinite(val)) matched++;
   });
-
   updateLegend();
-  console.log(`Render LAD/${metric} ${year}: matched ${matched} of ${total}`);
+  log(\`Render \${metric} \${year}: matched \${matched}/\${total}\`);
 }
 
-function fitUK(){ if(!layer) return; const tight = layer.getBounds().pad(-0.05); map.fitBounds(tight, {padding:[20,20]}); }
+function fitUK(){
+  if(!layer){ log('fitUK: no layer'); return; }
+  const layers = layer.getLayers();
+  if(!layers.length){ log('fitUK: 0 features'); return; }
+  const b = layer.getBounds();
+  if(!b || !b.isValid || !b.isValid()){ log('fitUK: invalid bounds', b); map.setView([54.9,-3.5],6); return; }
+  try{
+    const padded = b.pad(0.05);
+    map.fitBounds(padded, {padding:[20,20]});
+  }catch(e){
+    log('fitUK error, fallback to setView', e);
+    map.setView([54.9,-3.5],6);
+  }
+}
 
 let timer=null;
 function togglePlay(){
-  const btn=document.getElementById('playBtn');
+  const btn=$('#playBtn');
   if(timer){ clearInterval(timer); timer=null; btn.textContent='▶ Play year'; return; }
   btn.textContent='⏸ Pause';
   const [minY,maxY]=yearBounds;
   timer=setInterval(()=>{
     year = (year>=maxY)?minY:(year+1);
-    document.getElementById('yearRange').value=year;
-    document.getElementById('yearInput').value=year;
-    render();
+    $('#yearRange').value=year; $('#yearInput').value=year; render();
   }, 900);
 }
   </script>
