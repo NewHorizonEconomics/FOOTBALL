@@ -26,6 +26,19 @@
     .swatch{width:16px;height:12px;border-radius:2px;border:1px solid rgba(255,255,255,.1)}
     .tooltip{background:rgba(20,26,42,.96);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-size:12px;box-shadow:0 10px 24px rgba(0,0,0,.25)}
     .errorbar{position:absolute;top:12px;right:12px;left:380px;background:#742a2a;color:#fff;border:1px solid #9b2c2c;border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.3;display:none;z-index:1200}
+ .brand { display:flex; align-items:center; gap:12px; }
+.brand img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.08);
+  object-fit: cover;
+}
+.brand .sub {
+  color: var(--muted);
+  font-size: 12px;
+}
+
   </style>
 </head>
 <body>
@@ -85,7 +98,7 @@ const K = PALETTE.length - 1;
 
 let map, layer, geoLAD=null;
 let rows=[], year=1871, yearBounds=[1871,2025], metric='ELO';
-let legendVisible = true;
+
 
 const $ = sel => document.querySelector(sel);
 function showError(msg){ const el=$('#errorbar'); if(!el) return; el.textContent=msg; el.style.display='block'; console.error('[UI]', msg); }
