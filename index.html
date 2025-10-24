@@ -415,7 +415,7 @@ function render(){
     const name = String(l.feature.properties[l._nameProp]||'');
     const rec = AGG.get(year + '__' + code);
     const val = rec ? rec[metric] : NaN;
-   const has = Number.isFinite(val);
+   
 const fill = Number.isFinite(val) ? colorFor(val, breaks) : NO_DATA_FILL;
 
 const fill = has ? colorFor(val, breaks) : NO_DATA_FILL;
