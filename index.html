@@ -65,7 +65,8 @@ const LAD_NAME_PROP = 'LAD22NM';
 // ==================
 
 const PALETTE = ['#eff6ff','#dbeafe','#bfdbfe','#93c5fd','#60a5fa','#3b82f6','#1d4ed8','#1e40af'];
-const NO_DATA_FILL = '#3a4258';
+const NO_DATA_FILL = '#6b7280';  // mid-grey, clearly visible on dark basemap
+
 const K = PALETTE.length - 1;
 
 let map, layer, geoLAD=null;
@@ -90,6 +91,10 @@ function colorFor(val, breaks){
   for(let i=0;i<K;i++){ if(val <= breaks[i+1]) return PALETTE[i+0]; }
   return PALETTE[PALETTE.length-1];
 }
+    function baseStyle(){
+  return { color:'#c7d2fe', weight:1.4, fillColor:NO_DATA_FILL, fillOpacity:0.85 };
+}
+
 function fmtMetric(m,v){ if(!Number.isFinite(v)) return '—'; return m==='ELO' ? v.toFixed(2) : v.toFixed(1) + '%'; }
 function metricLabel(m){ return m==='ELO' ? 'ELO rating' : 'Win % (from WIN/PLAYED)'; }
 
@@ -150,6 +155,8 @@ async function loadGeo(){
   log('Geo features:', n);
   if(!n){ showError('GeoJSON has 0 features — check the file content/format.'); throw new Error('Empty GeoJSON'); }
 }
+console.log('Geo features:', geoLAD?.features?.length || 0,
+            'sample props:', geoLAD?.features?.[0]?.properties);
 
 function aggByYearCode(){
   const out = new Map();
@@ -192,20 +199,35 @@ function computeBreaks(){
   log('Breaks ELO:', BREAKS.ELO);
   log('Breaks WIN%:', BREAKS.WINPC_CALC);
 }
+map.createPane('polys');
+map.getPane('polys').style.zIndex = 450;   // above raster tiles
 
 function buildLayer(){
   if(layer) { map.removeLayer(layer); layer=null; }
   layer = L.geoJSON(geoLAD, {
-    style: ()=>({ color:'#9fb6e6', weight:1.1, fillColor:NO_DATA_FILL, fillOpacity:0.9 }),
-    onEachFeature: (f,l)=>{
-      l.on({
-        mouseover:e=>{ e.target.setStyle({weight:2,color:'#fff',fillColor:e.target._currentFill,fillOpacity:1}); },
-        mouseout:e=>{ e.target.setStyle({weight:1.1,color:'#9fb6e6',fillColor:e.target._currentFill,fillOpacity:0.9}); }
-      });
-      l._codeProp = LAD_CODE_PROP; l._nameProp = LAD_NAME_PROP;
-    }
-  }).addTo(map);
-  log('Layer built with', layer.getLayers().length, 'features');
+  pane: 'polys',
+  style: () => ({ color:'#c7d2fe', weight:1.4, fillColor:NO_DATA_FILL, fillOpacity:0.85 }),
+  onEachFeature: (f, l) => {
+    l.on({
+      mouseover: e => e.target.setStyle({
+        weight: 2,
+        color: '#fff',
+        fillColor: e.target._currentFill,
+        fillOpacity: 1
+      }),
+      mouseout: e => e.target.setStyle({
+        weight: 1.4,
+        color: '#c7d2fe',
+        fillColor: e.target._currentFill,
+        fillOpacity: 0.85
+      })
+    });
+    l._codeProp = LAD_CODE_PROP;
+    l._nameProp = LAD_NAME_PROP;
+  }
+}).addTo(map);
+
+console.log('Layer built with', layer.getLayers().length, 'features');
 }
 
 function updateLegend(){
