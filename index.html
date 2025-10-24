@@ -248,7 +248,8 @@ function render(){
     if(Number.isFinite(val)) matched++;
   });
   updateLegend();
-  log(\`Render \${metric} \${year}: matched \${matched}/\${total}\`);
+  log('Render ' + metric + ' ' + year + ': matched ' + matched + '/' + total);
+
 }
 
 function fitUK(){
